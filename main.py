@@ -17,8 +17,8 @@ def read_amount():
 def show_expenses(expenses):
 	total = 0
 
-	for expense in expenses:
-		print(expense["name"], expense["amount"])
+	for number, expense in enumerate(expenses, start=1):
+		print(number, expense["name"], expense["amount"])
 		total = total + expense["amount"]
 
 	print("Количество расходов:", len(expenses))
@@ -38,11 +38,37 @@ def save_expenses(expenses):
 		json.dump(expenses, file, ensure_ascii=False, indent=4)
 
 
+def delete_expense(expenses):
+	if not expenses:
+		print("Список расходов пуст")
+		return
+
+	show_expenses(expenses)
+
+	try:
+		number = int(input("Номер расхода для удаления (0 — отмена): "))
+	except ValueError:
+		print("Введите целый номер")
+		return
+
+	if number == 0:
+		return
+
+	if number < 1 or number > len(expenses):
+		print("Нет расхода с таким номером")
+		return
+
+	deleted = expenses.pop(number - 1)
+	save_expenses(expenses)
+	print("Удалён расход:", deleted["name"], deleted["amount"])
+
+
 expenses = load_expenses()
 
 while True:
 	print("\n1. Добавить расход")
 	print("2. Показать расходы")
+	print("3. Удалить расход")
 	print("0. Выйти")
 
 	choice = input("Выберите действие: ").strip()
@@ -61,6 +87,9 @@ while True:
 
 	elif choice == "2":
 		show_expenses(expenses)
+
+	elif choice == "3":
+		delete_expense(expenses)
 
 	elif choice == "0":
 		print("До свидания!")
