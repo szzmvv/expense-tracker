@@ -31,6 +31,10 @@ def load_expenses():
 			return json.load(file)
 	except FileNotFoundError:
 		return []
+	except json.JSONDecodeError:
+		print("Не удалось прочитать expenses.json: повреждён формат JSON.")
+		print("Файл не изменён. Исправьте его перед запуском.")
+		raise SystemExit(1)
 
 
 def save_expenses(expenses):
