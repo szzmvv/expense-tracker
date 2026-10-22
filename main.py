@@ -15,6 +15,10 @@ def read_amount():
 
 
 def show_expenses(expenses):
+	if not expenses:
+		print("Расходов пока нет.")
+		return
+
 	total = 0
 
 	for number, expense in enumerate(expenses, start=1):
