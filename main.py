@@ -14,35 +14,57 @@ def read_amount():
 				print("Сумма должна быть больше нуля")
 
 
-try:
-	with open("expenses.json", "r", encoding="utf-8") as file:
-		expenses = json.load(file)
-except FileNotFoundError:
-	expenses = []
+def show_expenses(expenses):
+	total = 0
+
+	for expense in expenses:
+		print(expense["name"], expense["amount"])
+		total = total + expense["amount"]
+
+	print("Количество расходов:", len(expenses))
+	print("Всего потрачено:", total)
+
+
+def load_expenses():
+	try:
+		with open("expenses.json", "r", encoding="utf-8") as file:
+			return json.load(file)
+	except FileNotFoundError:
+		return []
+
+
+def save_expenses(expenses):
+	with open("expenses.json", "w", encoding="utf-8") as file:
+		json.dump(expenses, file, ensure_ascii=False, indent=4)
+
+
+expenses = load_expenses()
 
 while True:
-	name = input("На что потратились или 'выход': ")
+	print("\n1. Добавить расход")
+	print("2. Показать расходы")
+	print("0. Выйти")
 
-	if name.strip().lower() == "выход":
+	choice = input("Выберите действие: ").strip()
+
+	if choice == "1":
+		name = input("На что потратились: ").strip()
+
+		if not name:
+			print("Название не должно быть пустым")
+			continue
+
+		num = read_amount()
+		expenses.append({"name": name, "amount": num})
+		save_expenses(expenses)
+		print("Расход сохранён:", name, num)
+
+	elif choice == "2":
+		show_expenses(expenses)
+
+	elif choice == "0":
+		print("До свидания!")
 		break
 
-	if not name.strip():
-		print("Название не должно быть пустым")
-		continue
-
-	num = read_amount()
-	print(name, num)
-	expenses.append({"name": name, "amount": num})
-
-total = 0
-
-for expense in expenses:
-	print(expense["name"], expense["amount"])
-	total = total + expense["amount"]
-
-count = len(expenses)
-print("Количество расходов:", count)
-print("Всего потрачено:", total)
-
-with open("expenses.json", "w", encoding="utf-8") as file:
-	json.dump(expenses, file, ensure_ascii=False, indent=4)
+	else:
+		print("Неизвестная команда. Введите 1, 2 или 0.")
