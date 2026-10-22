@@ -57,7 +57,7 @@ while True:
 		num = read_amount()
 		expenses.append({"name": name, "amount": num})
 		save_expenses(expenses)
-		print("Расход сохранён:", name, num)
+		print("Расход добавлен и сохранён:", name, num)
 
 	elif choice == "2":
 		show_expenses(expenses)
