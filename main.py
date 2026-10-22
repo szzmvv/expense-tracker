@@ -22,7 +22,14 @@ def show_expenses(expenses):
 	total = 0
 
 	for number, expense in enumerate(expenses, start=1):
-		print(number, expense["name"], expense["amount"])
+		category = expense.get("category", "Без категории")
+		print(
+			number,
+			expense["name"],
+			expense["amount"],
+			"Категория:",
+			category
+		)
 		total = total + expense["amount"]
 
 	print("Количество расходов:", len(expenses))
@@ -71,12 +78,34 @@ def delete_expense(expenses):
 	print("Удалён расход:", deleted["name"], deleted["amount"])
 
 
+def show_category_total(expenses):
+	category = input("Введите категорию: ").strip().lower()
+
+	if not category:
+		print("Категория не должна быть пустой")
+		return
+
+	total = 0
+	count = 0
+
+	for expense in expenses:
+		expense_category = expense.get("category", "Без категории")
+
+		if expense_category.strip().lower() == category:
+			total = total + expense["amount"]
+			count = count + 1
+
+	print("Найдено расходов:", count)
+	print("Сумма по категории:", total)
+
+
 expenses = load_expenses()
 
 while True:
 	print("\n1. Добавить расход")
 	print("2. Показать расходы")
 	print("3. Удалить расход")
+	print("4. Показать сумму по категории")
 	print("0. Выйти")
 
 	choice = input("Выберите действие: ").strip()
@@ -88,8 +117,18 @@ while True:
 			print("Название не должно быть пустым")
 			continue
 
+		category = input("Категория: ").strip()
+
+		if not category:
+			print("Категория не должна быть пустой")
+			continue
+
 		num = read_amount()
-		expenses.append({"name": name, "amount": num})
+		expenses.append({
+			"category": category,
+			"name": name,
+			"amount": num
+		})
 		save_expenses(expenses)
 		print("Расход добавлен и сохранён:", name, num)
 
@@ -99,9 +138,12 @@ while True:
 	elif choice == "3":
 		delete_expense(expenses)
 
+	elif choice == "4":
+		show_category_total(expenses)
+
 	elif choice == "0":
 		print("До свидания!")
 		break
 
 	else:
-		print("Неизвестная команда. Введите 1, 2 или 0.")
+		print("Неизвестная команда. Введите 1, 2, 3 или 0.")
