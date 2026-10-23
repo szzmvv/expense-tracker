@@ -1,17 +1,77 @@
-import json
+import math
+import sqlite3
 
 
 def read_amount():
 	while True:
 		try:
-			num = float(input("Введите сумму затраты: "))
+			amount = float(input("Введите сумму затраты: "))
 		except ValueError:
 			print("Введите число, например 150000!")
-		else:
-			if num > 0:
-				return num
-			else:
-				print("Сумма должна быть больше нуля")
+			continue
+
+		if math.isfinite(amount) and amount > 0:
+			return amount
+
+		print("Сумма должна быть положительным конечным числом")
+
+
+def init_db():
+	connection = sqlite3.connect("expenses.db")
+
+	try:
+		connection.execute("""
+			CREATE TABLE IF NOT EXISTS expenses (
+				id INTEGER PRIMARY KEY,
+				name TEXT NOT NULL,
+				amount REAL NOT NULL CHECK(amount > 0),
+				category TEXT NOT NULL
+			)
+		""")
+		connection.commit()
+	finally:
+		connection.close()
+
+
+def add_expense_db(name, amount, category):
+	connection = sqlite3.connect("expenses.db")
+
+	try:
+		connection.execute(
+			"INSERT INTO expenses (name, amount, category) VALUES (?, ?, ?)",
+			(name, amount, category)
+		)
+		connection.commit()
+	finally:
+		connection.close()
+
+
+def load_expenses_db():
+	connection = sqlite3.connect("expenses.db")
+	connection.row_factory = sqlite3.Row
+
+	try:
+		rows = connection.execute(
+			"SELECT id, name, amount, category FROM expenses ORDER BY id"
+		).fetchall()
+
+		return [dict(row) for row in rows]
+	finally:
+		connection.close()
+
+
+def delete_expense_db(expense_id):
+	connection = sqlite3.connect("expenses.db")
+
+	try:
+		cursor = connection.execute(
+			"DELETE FROM expenses WHERE id = ?",
+			(expense_id,)
+		)
+		connection.commit()
+		return cursor.rowcount
+	finally:
+		connection.close()
 
 
 def show_expenses(expenses):
@@ -22,35 +82,17 @@ def show_expenses(expenses):
 	total = 0
 
 	for number, expense in enumerate(expenses, start=1):
-		category = expense.get("category", "Без категории")
 		print(
 			number,
 			expense["name"],
 			expense["amount"],
 			"Категория:",
-			category
+			expense["category"]
 		)
 		total = total + expense["amount"]
 
 	print("Количество расходов:", len(expenses))
 	print("Всего потрачено:", total)
-
-
-def load_expenses():
-	try:
-		with open("expenses.json", "r", encoding="utf-8") as file:
-			return json.load(file)
-	except FileNotFoundError:
-		return []
-	except json.JSONDecodeError:
-		print("Не удалось прочитать expenses.json: повреждён формат JSON.")
-		print("Файл не изменён. Исправьте его перед запуском.")
-		raise SystemExit(1)
-
-
-def save_expenses(expenses):
-	with open("expenses.json", "w", encoding="utf-8") as file:
-		json.dump(expenses, file, ensure_ascii=False, indent=4)
 
 
 def delete_expense(expenses):
@@ -73,9 +115,13 @@ def delete_expense(expenses):
 		print("Нет расхода с таким номером")
 		return
 
-	deleted = expenses.pop(number - 1)
-	save_expenses(expenses)
-	print("Удалён расход:", deleted["name"], deleted["amount"])
+	expense = expenses[number - 1]
+	deleted_count = delete_expense_db(expense["id"])
+
+	if deleted_count == 1:
+		print("Удалён расход:", expense["name"], expense["amount"])
+	else:
+		print("Запись не найдена")
 
 
 def show_category_total(expenses):
@@ -89,9 +135,7 @@ def show_category_total(expenses):
 	count = 0
 
 	for expense in expenses:
-		expense_category = expense.get("category", "Без категории")
-
-		if expense_category.strip().lower() == category:
+		if expense["category"].strip().lower() == category:
 			total = total + expense["amount"]
 			count = count + 1
 
@@ -99,51 +143,51 @@ def show_category_total(expenses):
 	print("Сумма по категории:", total)
 
 
-expenses = load_expenses()
+def main():
+	init_db()
 
-while True:
-	print("\n1. Добавить расход")
-	print("2. Показать расходы")
-	print("3. Удалить расход")
-	print("4. Показать сумму по категории")
-	print("0. Выйти")
+	while True:
+		print("\n1. Добавить расход")
+		print("2. Показать расходы")
+		print("3. Удалить расход")
+		print("4. Показать сумму по категории")
+		print("0. Выйти")
 
-	choice = input("Выберите действие: ").strip()
+		choice = input("Выберите действие: ").strip()
 
-	if choice == "1":
-		name = input("На что потратились: ").strip()
+		if choice == "1":
+			name = input("На что потратились: ").strip()
 
-		if not name:
-			print("Название не должно быть пустым")
-			continue
+			if not name:
+				print("Название не должно быть пустым")
+				continue
 
-		category = input("Категория: ").strip()
+			category = input("Категория: ").strip()
 
-		if not category:
-			print("Категория не должна быть пустой")
-			continue
+			if not category:
+				print("Категория не должна быть пустой")
+				continue
 
-		num = read_amount()
-		expenses.append({
-			"category": category,
-			"name": name,
-			"amount": num
-		})
-		save_expenses(expenses)
-		print("Расход добавлен и сохранён:", name, num)
+			amount = read_amount()
+			add_expense_db(name, amount, category)
+			print("Расход добавлен и сохранён:", name, amount)
 
-	elif choice == "2":
-		show_expenses(expenses)
+		elif choice == "2":
+			show_expenses(load_expenses_db())
 
-	elif choice == "3":
-		delete_expense(expenses)
+		elif choice == "3":
+			delete_expense(load_expenses_db())
 
-	elif choice == "4":
-		show_category_total(expenses)
+		elif choice == "4":
+			show_category_total(load_expenses_db())
 
-	elif choice == "0":
-		print("До свидания!")
-		break
+		elif choice == "0":
+			print("До свидания!")
+			break
 
-	else:
-		print("Неизвестная команда. Введите 1, 2, 3 или 0.")
+		else:
+			print("Неизвестная команда. Введите 1, 2, 3, 4 или 0.")
+
+
+if __name__ == "__main__":
+	main()
