@@ -189,6 +189,57 @@ def show_category_total(expenses):
 	print("Сумма по категории:", total)
 
 
+def update_category_db(expense_id, category):
+	connection = sqlite3.connect("expenses.db")
+
+	try:
+		cursor = connection.execute(
+			"UPDATE expenses SET category = ? WHERE id = ?",
+			(category, expense_id)
+		)
+		connection.commit()
+		return cursor.rowcount
+	finally:
+		connection.close()	
+
+
+def edit_expense_category(expenses):
+	if not expenses:
+		print("Список расходов пуст")
+		return
+
+	show_expenses(expenses)
+
+	try:
+		number = int(input("Номер расхода для изменения (0 — отмена): "))
+	except ValueError:
+		print("Введите целый номер")
+		return
+
+	if number == 0:
+		return
+
+	if number < 1 or number > len(expenses):
+		print("Нет расхода с таким номером")
+		return
+
+	expense = expenses[number - 1]
+	print("Текущая категория:", expense["category"])
+
+	category = input("Новая категория: ").strip()
+
+	if not category:
+		print("Категория не должна быть пустой")
+		return
+
+	updated_count = update_category_db(expense["id"], category)
+
+	if updated_count == 1:
+		print("Категория обновлена:", expense["name"], category)
+	else:
+		print("Запись не найдена")
+
+
 def main():
 	init_db()
 
@@ -198,6 +249,7 @@ def main():
 		print("3. Удалить расход")
 		print("4. Показать сумму по категории")
 		print("5. Изменить сумму расхода")
+		print("6. Изменить категорию расхода")
 		print("0. Выйти")
 
 		choice = input("Выберите действие: ").strip()
@@ -230,6 +282,9 @@ def main():
 
 		elif choice == "5":
 			edit_expense_amount(load_expenses_db())
+
+		elif choice == "6":
+			edit_expense_category(load_expenses_db())
 
 		elif choice == "0":
 			print("До свидания!")
