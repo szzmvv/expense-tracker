@@ -5,7 +5,7 @@ import sqlite3
 def read_amount():
 	while True:
 		try:
-			amount = float(input("Введите сумму затраты: "))
+			amount = float(input("Введите сумму расхода: "))
 		except ValueError:
 			print("Введите число, например 150000!")
 			continue
@@ -74,6 +74,20 @@ def delete_expense_db(expense_id):
 		connection.close()
 
 
+def update_amount_db(expense_id, amount):
+	connection = sqlite3.connect("expenses.db")
+
+	try:
+		cursor = connection.execute(
+			"UPDATE expenses SET amount = ? WHERE id = ?",
+			(amount, expense_id)
+		)
+		connection.commit()
+		return cursor.rowcount
+	finally:
+		connection.close()
+
+
 def show_expenses(expenses):
 	if not expenses:
 		print("Расходов пока нет.")
@@ -124,6 +138,38 @@ def delete_expense(expenses):
 		print("Запись не найдена")
 
 
+def edit_expense_amount(expenses):
+	if not expenses:
+		print("Список расходов пуст")
+		return
+
+	show_expenses(expenses)
+
+	try:
+		number = int(input("Номер расхода для изменения (0 — отмена): "))
+	except ValueError:
+		print("Введите целый номер")
+		return
+
+	if number == 0:
+		return
+
+	if number < 1 or number > len(expenses):
+		print("Нет расхода с таким номером")
+		return
+
+	expense = expenses[number - 1]
+	print("Текущая сумма:", expense["amount"])
+	amount = read_amount()
+
+	updated_count = update_amount_db(expense["id"], amount)
+
+	if updated_count == 1:
+		print("Сумма обновлена:", expense["name"], amount)
+	else:
+		print("Запись не найдена")
+
+
 def show_category_total(expenses):
 	category = input("Введите категорию: ").strip().lower()
 
@@ -151,6 +197,7 @@ def main():
 		print("2. Показать расходы")
 		print("3. Удалить расход")
 		print("4. Показать сумму по категории")
+		print("5. Изменить сумму расхода")
 		print("0. Выйти")
 
 		choice = input("Выберите действие: ").strip()
@@ -181,12 +228,15 @@ def main():
 		elif choice == "4":
 			show_category_total(load_expenses_db())
 
+		elif choice == "5":
+			edit_expense_amount(load_expenses_db())
+
 		elif choice == "0":
 			print("До свидания!")
 			break
 
 		else:
-			print("Неизвестная команда. Введите 1, 2, 3, 4 или 0.")
+			print("Неизвестная команда. Введите 1, 2, 3, 4, 5 или 0.")
 
 
 if __name__ == "__main__":
